@@ -1,24 +1,38 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKERHUB_CREDENTIALS = 'dockerhub-credentials' // Update with your DockerHub credentials ID
+        DOCKERHUB_REPO = 'mukesh18s/crud-app' // Update with your DockerHub username and image name
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/mukeshsirvi18/crud-app'
+                // Checkout code from the repository automatically using the Jenkins Git plugin
+                checkout scm
             }
         }
+        
         stage('Build Docker Image') {
             steps {
                 script {
-                    def app = docker.build("mukesh18s/crud-app:${env.BUILD_ID}")
+                    // Ensure Docker is available
+                    sh 'docker --version'
+                    
+                    // Build the Docker image
+                    def app = docker.build("${DOCKERHUB_REPO}:${env.BUILD_ID}")
                 }
             }
         }
+
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        app.push()
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                        def app = docker.image("${DOCKERHUB_REPO}:${env.BUILD_ID}")
+                        app.push("${env.BUILD_ID}")
+                        app.push("latest")
                     }
                 }
             }
